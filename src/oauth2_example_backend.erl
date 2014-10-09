@@ -115,12 +115,12 @@ delete_client(Id) ->
 %%% OAuth2 backend functions
 %%%===================================================================
 
-authenticate_username_password(Username, Password, _) ->
+authenticate_username_password(Username, Password, AppCtx) ->
     case get(?USER_TABLE, Username) of
         {ok, #user{password = UserPw}} ->
             case Password of
                 UserPw ->
-                    {ok, {<<"user">>, Username}};
+                    {ok, {AppCtx, Username}};
                 _ ->
                     {error, badpass}
             end;
@@ -152,8 +152,9 @@ associate_access_code(AccessCode, Context, _AppContext) ->
 associate_refresh_token(RefreshToken, Context, _) ->
     put(?REFRESH_TOKEN_TABLE, RefreshToken, Context).
 
-associate_access_token(AccessToken, Context, _) ->
-    put(?ACCESS_TOKEN_TABLE, AccessToken, Context).
+associate_access_token(AccessToken, Context, AppContext) ->
+    ok = put(?ACCESS_TOKEN_TABLE, AccessToken, Context),
+    {ok, AppContext}.
 
 
 resolve_access_code(AccessCode, _AppContext) ->
@@ -183,30 +184,30 @@ revoke_access_token(AccessToken, _) ->
 revoke_refresh_token(_RefreshToken, _) ->
     ok.
 
-get_redirection_uri(ClientId, _) ->
+get_redirection_uri(ClientId, AppCtx) ->
     case get(?CLIENT_TABLE, ClientId) of
         {ok, #client{redirect_uri = RedirectUri}} ->
-            {ok, RedirectUri};
+            {ok, {AppCtx, RedirectUri}};
         Error = {error, notfound} ->
             Error
     end.
 
-verify_redirection_uri(ClientId, ClientUri, _) ->
+verify_redirection_uri(ClientId, ClientUri, AppCtx) ->
     case get(?CLIENT_TABLE, ClientId) of
         {ok, #client{redirect_uri = RedirUri}} when ClientUri =:= RedirUri ->
-            {ok, RedirUri};
+            {ok, {AppCtx, RedirUri}};
         _Error ->
             {error, mismatch}
     end.
 
-verify_client_scope(_ClientId, Scope, _) ->
-    {ok, Scope}.
+verify_client_scope(_ClientId, Scope, AppCtx) ->
+    {ok, {AppCtx, Scope}}.
 
-verify_resowner_scope(_ResOwner, Scope, _) ->
-    {ok, Scope}.
+verify_resowner_scope(_ResOwner, Scope, AppCtx) ->
+    {ok, {AppCtx, Scope}}.
 
-verify_scope(Scope, Scope, _) ->
-    {ok, Scope};
+verify_scope(Scope, Scope, AppCtx) ->
+    {ok, {AppCtx, Scope}};
 verify_scope(_, _, _) ->
     {error, invalid_scope}.
 

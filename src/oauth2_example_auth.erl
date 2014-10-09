@@ -115,7 +115,7 @@ process_password_grant(Req, Params) ->
     Username = proplists:get_value(<<"username">>, Params),
     Password = proplists:get_value(<<"password">>, Params),
     Scope    = proplists:get_value(<<"scope">>, Params, <<"">>),
-    Auth     = oauth2:authorize_password(Username, Password, Scope, []),
+    {ok, Auth} = oauth2:authorize_password(Username, Password, Scope, []),
     issue_token(Auth, Req).
 
 process_client_credentials_grant(Req, Params) ->
@@ -123,7 +123,7 @@ process_client_credentials_grant(Req, Params) ->
         cowboy_req:header(<<"authorization">>, Req),
     [Id, Secret] = binary:split(base64:decode(Credentials), <<":">>),
     Scope = proplists:get_value(<<"scope">>, Params),
-    Auth = oauth2:authorize_client_credentials(Id, Secret, Scope, []),
+    {ok, Auth} = oauth2:authorize_client_credentials(Id, Secret, Scope, []),
     issue_token(Auth, Req2).
 
 process_implicit_grant(Req, Params) ->
@@ -182,8 +182,9 @@ process_implicit_grant_stage2(Req, Params) ->
 %%% Internal functions
 %%%===================================================================
 
-issue_token({ok, Auth}, Req) ->
-    emit_response(oauth2:issue_token(Auth, []), Req);
+issue_token({AppCtx, Auth}, Req) ->
+    {ok, {AppCtx, Response}} = oauth2:issue_token(Auth, AppCtx),
+    emit_response(Response, Req);
 issue_token(Error, Req) ->
     emit_response(Error, Req).
 
