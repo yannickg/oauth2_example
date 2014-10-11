@@ -163,13 +163,13 @@ resolve_access_code(AccessCode, _AppContext) ->
 resolve_refresh_token(RefreshToken, _AppContext) ->
     resolve_access_token(RefreshToken, _AppContext).
 
-resolve_access_token(AccessToken, _) ->
+resolve_access_token(AccessToken, AppContext) ->
     %% The case trickery is just here to make sure that
     %% we don't propagate errors that cannot be legally
     %% returned from this function according to the spec.
     case get(?ACCESS_TOKEN_TABLE, AccessToken) of
-        Value = {ok, _} ->
-            Value;
+        {ok, Context} ->
+            {ok, {AppContext, Context}};
         Error = {error, notfound} ->
             Error
     end.
